@@ -1,0 +1,3 @@
+n_fft: 1024
+n_mels: 40
+n_mfcc: 40
