@@ -1,12 +1,12 @@
-##Prerequisites
+## Prerequisites
 * **Python** 3.x
 * Required packages can be installed by running `pip install -r requirements.txt` 
 
-##Reproducing Experiments
+## Reproducing Experiments
 
-`bash run_all.sh`
+`./run_all.sh`
 
-##References
+## References
 This is the codebase for the paper [Probing Acoustic Representations for Phonetic Properties](https://arxiv.org/pdf/2010.13007.pdf). If you use the code in your work, please cite
 
 ```
