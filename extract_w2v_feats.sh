@@ -1,15 +1,16 @@
 #!/bin/bash
 
+WORK_DIR=`realpath /data/working/nryant/is2020_pretrained_speech_probe_experiments/pae_probe_experiments`
 # Load virtual environment containing latest version of fairseq.
-source ../venv/bin/activate
+source $WORK_DIR/../venv/bin/activate
 
 # Paths to wav2vec/vq-wav2vec model files.
-W2V_MODELF=../wav2vec/models/wav2vec_large.pt
+W2V_MODELF=$WORK_DIR/../wav2vec/models/wav2vec_large.pt
 W2V_FEATS_DIR=feats/wav2vec-large
-VQW2V_MODELF=../wav2vec/models/vq-wav2vec_kmeans.pt
+VQW2V_MODELF=$WORK_DIR/../wav2vec/models/vq-wav2vec_kmeans.pt
 VQW2V_FEATS_DIR=feats/vq-wav2vec_kmeans_roberta
-ROBERTA_MODELF=../wav2vec/models/roberta/bert_kmeans.pt
-ROBERTA_VOCABF=../wav2vec/models/roberta/dict.txt
+ROBERTA_MODELF=$WORK_DIR/../wav2vec/models/roberta/bert_kmeans.pt
+ROBERTA_VOCABF=$WORK_DIR/../wav2vec/models/roberta/dict.txt
 
 for corpus in ctimit_final  ffmtimit_final  ntimit_final  stctimit_final  timit_final  wtimit_final; do
     wav_dir=/data/corpora/processed_timit_variants/${corpus}/wav

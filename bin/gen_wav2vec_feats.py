@@ -158,10 +158,10 @@ def main():
         roberta_model = roberta_model.to(device)
 
     # Load wav2vec model..
-    wav2vec_cp = torch.load(args.modelf)
+    wav2vec_cp = torch.load(args.modelf, map_location=torch.device('cpu'))
     with pipes() as (stderr, stdout):
-        # TODO: Get rid of this once can figure out how to disable damn
-        #       fairseq logging.
+        # TODO: Get rid of this once can figure out how to disable fairseq
+        #       logging.
         wav2vec_model = Wav2VecModel.build_model(wav2vec_cp['args'], task=None)
     wav2vec_model.load_state_dict(wav2vec_cp['model'])
     wav2vec_model.eval()
