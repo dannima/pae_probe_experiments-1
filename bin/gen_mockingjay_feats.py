@@ -1,4 +1,4 @@
-#!/scratch/dannima/mockingjay/bin/python
+#!/usr/bin/env python3
 """Extract acoustic features using mockingjay model.
 
 To extract features using a pretrained mockingjay model:
@@ -17,8 +17,9 @@ the script to use the GPU, if free.
 
 For each audio file, this script outputs a NumPy ``.npy`` file containing an
 ``num_frames`` x ``num_features`` array of frame-level features. These
-correspond to frames sampled every 10 ms starting from an offset of 0; that is,
-the ``i``-th frame of features corresponds to an offset of ``i*0.010`` seconds.
+correspond to frames sampled every 12.5 ms starting from an offset of 0; that
+is, the ``i``-th frame of features corresponds to an offset of ``i*0.0125``
+seconds.
 """
 import argparse
 import os
@@ -98,7 +99,6 @@ def main():
     device = 'cuda:0' if use_gpu else 'cpu'
     device = torch.device(device)
 
-    # Load mockingjay model..
     options = {
         'ckpt_file'     : args.modelf,
         'load_pretrain' : 'True',
@@ -106,14 +106,16 @@ def main():
         'dropout'       : 'default',
         'spec_aug'      : 'False',
         'spec_aug_prev' : 'True',
-        'weighted_sum'  : 'True',
+        'weighted_sum'  : 'False',
         'select_layer'  : -1,
+        'permute_input' : 'False',
+        # Set to False to take input as (B, T, D), otherwise take (T, B, D)
     }
-    mockingjay_model = TRANSFORMER(options=options, inp_dim=160)
 
-    # Set to False to take input as (B, T, D), otherwise take (T, B, D)
-    mockingjay_model.permute_input = False
-    mockingjay_model.eval()
+    # setup the transformer model
+    # copying a param with shape torch.Size([768, 480]) from checkpoint
+    # set inp_dim to 0 for auto setup
+    mockingjay_model = TRANSFORMER(options=options, inp_dim=0)
     mockingjay_model = mockingjay_model.to(device)
 
     # Process.

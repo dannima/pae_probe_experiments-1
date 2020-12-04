@@ -1,4 +1,4 @@
-#!/scratch/working/nryant/wav2vec/venv/bin/python
+#!/usr/bin/env python3
 """Extract acoustic features using wav2vec or vq-wav2vec models.
 
 To extract features using a pretrained wav2vec of vq-wav2vec model:
@@ -92,23 +92,24 @@ def extract_feats_to_file(npy_path, audio_path, wav2vec_model,
 
     # If a RoBERTa model is specified, perform quantization
     # and pass through RoBERTa to get features.
+    # https://github.com/pytorch/fairseq/issues/1793
     if roberta_model is not None:
         _, idx = wav2vec_model.vector_quantizer.forward_idx(c)
         idx = idx.squeeze(0).cpu().numpy()
         tokens = [f'{g1}-{g2}' for g1, g2 in idx]
         sent = ' '.join(tokens)
-        tokens = roberta_model.decoder.dictionary.encode_line(
+        tokens = roberta_model.task.source_dictionary.encode_line(
             sent, append_eos=False, add_if_not_exist=False)
         tokens = tokens.long().unsqueeze(0)
         tokens = tokens.to(dev)
         with torch.no_grad():
             feats, _ = roberta_model.extract_features(tokens)
-        feats = feats.T # For some reason Roberta feats are inverted.
-        
+        feats = feats.T  # For some reason Roberta feats are inverted.
+
     # Save as uncompressed .npy file.
-    feats = feats.cpu().numpy() # Shape: 1 x feat_dim x n_frames
+    feats = feats.cpu().numpy()  # Shape: 1 x feat_dim x n_frames
     feats = np.squeeze(feats)
-    feats = feats.T # Shape: n_frames x feat_dim
+    feats = feats.T  # Shape: n_frames x feat_dim
     np.save(npy_path, feats)
 
 
@@ -150,6 +151,8 @@ def main():
             d = Dictionary.load(f)
         roberta_cp = torch.load(args.roberta)
         roberta_args = roberta_cp['args']
+        roberta_cp['args'].quant_noise_pq = 0.0
+        roberta_cp['args'].quant_noise_pq_block_size = 8
         with pipes() as (stderr, stdout):
             roberta_model = RobertaModel.build_model(
                 roberta_args, MaskedLMTask(roberta_args, d))
@@ -162,7 +165,15 @@ def main():
     with pipes() as (stderr, stdout):
         # TODO: Get rid of this once can figure out how to disable fairseq
         #       logging.
-        wav2vec_model = Wav2VecModel.build_model(wav2vec_cp['args'], task=None)
+        # Now triggers error.
+        # https://github.com/pytorch/fairseq/issues/2959
+        wav2vec_model = Wav2VecModel.build_model(
+            wav2vec_cp['args'], task=None)
+        # model, cfg, task = \
+        #     fairseq.checkpoint_utils.load_model_ensemble_and_task(
+        #         [args.modelf])
+        # wav2vec_model = model[0]
+
     wav2vec_model.load_state_dict(wav2vec_cp['model'])
     wav2vec_model.eval()
     wav2vec_model = wav2vec_model.to(device)

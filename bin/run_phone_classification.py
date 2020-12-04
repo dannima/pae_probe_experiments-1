@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import argparse
 import numpy as np
-import os
 import pandas as pd
 import sys
 import yaml
@@ -14,7 +13,6 @@ from sklearn import metrics
 from sklearn.decomposition import TruncatedSVD
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC
 from skorch import NeuralNetClassifier
 from skorch.callbacks import GradientNormClipping, EarlyStopping
 from torch import nn
@@ -169,8 +167,7 @@ def get_classifier(clf_name, feat_dim, batch_size, device, weights):
             # Scoring callbacks.
             callbacks=callbacks)
         print('CHECKPOINT 0')
-    clf = Pipeline(
-        [
+    clf = Pipeline([
         ('scaler', TruncatedSVD(n_components=n_components)),
         # ('scaler', StandardScaler()),
         ('clf', clf)])
@@ -210,7 +207,8 @@ Task = namedtuple(
              'batch_size'])
 
 
-class ConfigError(Exception): pass
+class ConfigError(Exception):
+    pass
 
 
 def load_task_config(fn):
@@ -354,14 +352,6 @@ def main():
         sys.exit(1)
     args = parser.parse_args()
     task, train_dsets, test_dsets = load_task_config(args.config)
-    config_name = Path(args.config).stem
-    curr_task, probing_clf, rep = config_name.split('_', 2)
-    if rep == 'w2v_large':
-        rep = 'wav2vec-large'
-    elif rep == 'vqw2v':
-        rep = 'vq-wav2vec_kmeans_roberta'
-    elif rep == 'mj':
-        rep = 'mockingjay'
 
     print('Training classifiers...')
     models = {}
@@ -383,8 +373,6 @@ def main():
         clf = get_classifier(
             task.classifier, feat_dim, task.batch_size, args.device, weights)
         print('CHECKPOINT 3')
-        print('feats shape:', feats.shape)
-        print('targets shape:', targets.shape)
         clf.fit(feats, targets)
         models[dset.name] = clf
 
@@ -394,29 +382,17 @@ def main():
         feats, targets = get_feats_targets(
             dset.utterances, dset.step, task.context_size, task.target_labels,
             args.n_jobs)
-        fn_path = Path('labels')/f'{dset.name}_final'/curr_task/rep
-        os.makedirs(fn_path, exist_ok=True)
-        fn = fn_path/'test.npy'
-        # np.save(fn, targets)
         test_data[dset.name] = {
-            'feats' : feats,
-            'targets' : targets}
-            
+            'feats': feats,
+            'targets': targets}
+
     records = []
     for train_dset_name in sorted(models):
         clf = models[train_dset_name]
         for test_dset_name in test_data:
             feats = test_data[test_dset_name]['feats']
             targets = test_data[test_dset_name]['targets']
-
             preds = clf.predict(feats)
-            fn_path = Path(
-                'predictions')/'train'/f'{train_dset_name}_final'/'test'/ \
-                f'{test_dset_name}_final'/curr_task/rep/probing_clf
-            os.makedirs(fn_path, exist_ok=True)
-            fn = fn_path/'test.npy'
-            np.save(fn, preds)
-
             folded_targets = [folded_index_map[x] for x in targets]
             folded_preds = [folded_index_map[x] for x in preds]
 
@@ -433,12 +409,12 @@ def main():
             precision, recall, f1, _ = metrics.precision_recall_fscore_support(
                 folded_targets, folded_preds, average='weighted')
             records.append({
-                'train' : train_dset_name,
-                'test' : test_dset_name,
+                'train': train_dset_name,
+                'test': test_dset_name,
                 'acc': acc,
-                'precision' : precision,
-                'recall' : recall,
-                'weighted f1' : f1
+                'precision': precision,
+                'recall': recall,
+                'weighted f1': f1
                 })
     scores_df = pd.DataFrame(records)
     print(scores_df)
@@ -446,5 +422,5 @@ def main():
 
 if __name__ == '__main__':
     phone_to_59_int, folded_index_map = load_timit_phone_map(
-        'phones.60-48-39.map')
+        '../../phones.60-48-39.map')
     main()

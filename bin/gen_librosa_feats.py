@@ -47,7 +47,7 @@ def extract_feats(af, feats_dir, sr, feats_fn, add_deltas=False, **kwargs):
     """
     x, _ = librosa.core.load(af, sr)
     feats = feats_fn(x, sr=sr, **kwargs)
-    feats = feats.T # Convert features to frames x feat_dim.
+    feats = feats.T  # Convert features to frames x feat_dim.
     if add_deltas:
         delta = librosa.feature.delta(feats, order=1, axis=0)
         delta_delta = librosa.feature.delta(feats, order=2, axis=0)
@@ -60,7 +60,7 @@ def main():
     parser = argparse.ArgumentParser(
         'extract librosa spectral features from audio', add_help=True)
     parser.add_argument(
-        'feats_dir', nargs=None, type=Path, 
+        'feats_dir', nargs=None, type=Path,
         help='output directory for features')
     parser.add_argument(
         'af', nargs='+', type=Path,
@@ -101,7 +101,7 @@ def main():
     kwargs['hop_length'] = sec_to_samples(args.step, args.sr)
     if args.config is not None:
         with open(args.config, 'r') as f:
-            kwargs.update(yaml.load(f))
+            kwargs.update(yaml.load(f, Loader=yaml.FullLoader))
     if 'n_fft' in kwargs:
         # Make sure n_fft is at least as large as the window size.
         kwargs['n_fft'] = int(2**np.ceil(np.log2(kwargs['win_length'])))

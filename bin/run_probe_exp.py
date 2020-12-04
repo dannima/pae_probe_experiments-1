@@ -2,7 +2,6 @@
 import argparse
 from collections import namedtuple
 from pathlib import Path
-import os
 import sys
 
 from joblib import delayed, parallel_backend, Parallel
@@ -48,10 +47,10 @@ TARGETS = SPEECH
 
 # Mapping from task names to target labels.
 TASK_TARGETS = {
-    'sad' : SPEECH,
-    'syllable' : VOWELS,
-    'sonorant' : VOCALIC,
-    'fricative' : FRICATIVES}
+    'sad': SPEECH,
+    'vowel': VOWELS,
+    'sonorant': VOCALIC,
+    'fricative': FRICATIVES}
 VALID_TASK_NAMES = set(TASK_TARGETS.keys())
 
 
@@ -128,8 +127,7 @@ def get_classifier(clf_name, feat_dim, batch_size, device, weights):
             # Scoring callbacks.
             callbacks=callbacks)
         print('CHECKPOINT 0')
-    clf = Pipeline(
-        [
+    clf = Pipeline([
         ('scaler', TruncatedSVD(n_components=n_components)),
         # ('scaler', StandardScaler()),
         ('clf', clf)])
@@ -169,7 +167,8 @@ Task = namedtuple(
              'batch_size'])
 
 
-class ConfigError(Exception): pass
+class ConfigError(Exception):
+    pass
 
 
 def load_task_config(fn):
@@ -317,7 +316,6 @@ def main():
         sys.exit(1)
     args = parser.parse_args()
     task, train_dsets, test_dsets = load_task_config(args.config)
-    config_name = Path(args.config).stem
 
     print('Training classifiers...')
     models = {}
@@ -349,8 +347,8 @@ def main():
             dset.utterances, dset.step, task.context_size, task.target_labels,
             args.n_jobs)
         test_data[dset.name] = {
-            'feats' : feats,
-            'targets' : targets}
+            'feats': feats,
+            'targets': targets}
 
     records = []
     for train_dset_name in sorted(models):
@@ -359,7 +357,7 @@ def main():
             feats = test_data[test_dset_name]['feats']
             targets = test_data[test_dset_name]['targets']
             preds = clf.predict(feats)
-            
+
             acc = metrics.accuracy_score(targets, preds)
             precision, recall, f1, _ = metrics.precision_recall_fscore_support(
                 targets, preds, pos_label=1, average='binary')
