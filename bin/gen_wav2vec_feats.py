@@ -44,6 +44,7 @@ import librosa
 import numpy as np
 import torch
 from tqdm import tqdm
+from wurlitzer import pipes
 
 
 def get_device(x):
@@ -160,7 +161,9 @@ def main():
 
     # Load wav2vec model..
     wav2vec_cp = torch.load(args.modelf, map_location=torch.device('cpu'))
-    wav2vec_model = Wav2VecModel.build_model(wav2vec_cp['args'], task=None)
+    with pipes() as (stderr, stdout):
+        wav2vec_model = Wav2VecModel.build_model(
+            wav2vec_cp['args'], task=None)
 
     wav2vec_model.load_state_dict(wav2vec_cp['model'])
     wav2vec_model.eval()
