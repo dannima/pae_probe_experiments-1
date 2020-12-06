@@ -44,7 +44,6 @@ import librosa
 import numpy as np
 import torch
 from tqdm import tqdm
-from wurlitzer import pipes
 
 
 def get_device(x):
@@ -153,26 +152,15 @@ def main():
         roberta_args = roberta_cp['args']
         roberta_cp['args'].quant_noise_pq = 0.0
         roberta_cp['args'].quant_noise_pq_block_size = 8
-        with pipes() as (stderr, stdout):
-            roberta_model = RobertaModel.build_model(
-                roberta_args, MaskedLMTask(roberta_args, d))
+        roberta_model = RobertaModel.build_model(
+            roberta_args, MaskedLMTask(roberta_args, d))
         roberta_model.load_state_dict(roberta_cp['model'])
         roberta_model.eval()
         roberta_model = roberta_model.to(device)
 
     # Load wav2vec model..
     wav2vec_cp = torch.load(args.modelf, map_location=torch.device('cpu'))
-    with pipes() as (stderr, stdout):
-        # TODO: Get rid of this once can figure out how to disable fairseq
-        #       logging.
-        # Now triggers error.
-        # https://github.com/pytorch/fairseq/issues/2959
-        wav2vec_model = Wav2VecModel.build_model(
-            wav2vec_cp['args'], task=None)
-        # model, cfg, task = \
-        #     fairseq.checkpoint_utils.load_model_ensemble_and_task(
-        #         [args.modelf])
-        # wav2vec_model = model[0]
+    wav2vec_model = Wav2VecModel.build_model(wav2vec_cp['args'], task=None)
 
     wav2vec_model.load_state_dict(wav2vec_cp['model'])
     wav2vec_model.eval()
