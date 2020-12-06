@@ -5,4 +5,4 @@ cd ../../
 . path.sh
 cd $WORKING_DIR
 ./extract_vqw2v_feats.sh
-# ./../../run_probe_exp.sh
+./../../run_probe_exp.sh

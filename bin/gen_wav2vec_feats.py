@@ -98,12 +98,12 @@ def extract_feats_to_file(npy_path, audio_path, wav2vec_model,
         idx = idx.squeeze(0).cpu().numpy()
         tokens = [f'{g1}-{g2}' for g1, g2 in idx]
         sent = ' '.join(tokens)
-        tokens = roberta_model.task.source_dictionary.encode_line(
+        tokens = roberta_model.encoder.dictionary.encode_line(
             sent, append_eos=False, add_if_not_exist=False)
         tokens = tokens.long().unsqueeze(0)
         tokens = tokens.to(dev)
         with torch.no_grad():
-            feats, _ = roberta_model.extract_features(tokens)
+            feats, _ = roberta_model.encoder.extract_features(tokens)
         feats = feats.T  # For some reason Roberta feats are inverted.
 
     # Save as uncompressed .npy file.
