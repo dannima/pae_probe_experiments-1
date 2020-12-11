@@ -11,7 +11,7 @@ as well as traditional MFCC and Mel scale filterbank features.
 ## Prerequisites
 * **Bash** version &ge; 4
 * **Python** version &ge; 3.6
-* If you are not using GPU with CUDA 10.1, you might want to change `torch==1.7.0+cu101` and `mxnet_cu101mkl` in `requirements.txt` to your own CUDA version before installation.
+* If you are _not_ using GPU with CUDA 10.1, you might want to change `torch==1.7.0+cu101` and `mxnet_cu101mkl` in `requirements.txt` to your own CUDA version before installation.
 * Required packages can be installed by running `./install.sh`.
 
 ## Reproducing Experiments
