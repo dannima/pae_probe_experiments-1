@@ -94,7 +94,7 @@ def extract_feats_to_file(npy_path, audio_path, wav2vec_model,
     # and pass through RoBERTa to get features.
     # https://github.com/pytorch/fairseq/issues/1793
     if roberta_model is not None:
-        _, idx = wav2vec_model.vector_quantizer.forward_idx(c)
+        _, idx = wav2vec_model.vector_quantizer.forward_idx(z)
         idx = idx.squeeze(0).cpu().numpy()
         tokens = [f'{g1}-{g2}' for g1, g2 in idx]
         sent = ' '.join(tokens)
