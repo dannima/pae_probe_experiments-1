@@ -107,7 +107,7 @@ def extract_feats_to_file(npy_path, audio_path, wav2vec_model,
         feats = feats.T  # For some reason Roberta feats are inverted.
 
     # Save as uncompressed .npy file.
-    feats = feats.cpu().numpy()  # Shape: 1 x feat_dim x n_frames
+    feats = feats.cpu().numpy()  # Shape: feat_dim x n_frames x 1
     feats = np.squeeze(feats)
     feats = feats.T  # Shape: n_frames x feat_dim
     np.save(npy_path, feats)
