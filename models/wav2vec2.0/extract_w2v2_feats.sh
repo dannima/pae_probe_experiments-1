@@ -36,7 +36,7 @@ for corpus in ctimit ffmtimit ntimit stctimit timit wtimit; do
         $feats_dir $wav_dir/*.wav
 done
 
-# echo
-# echo "Generating configuration files..."
-# ../../bin/gen_config_files.py --step 0.02 $FEATS_DIR configs/tasks/ \
-#     $TIMIT_PATH $NTIMIT_PATH $CTIMIT_PATH $FFMTIMIT_PATH $STCTIMIT_PATH $WTIMIT_PATH
+echo
+echo "Generating configuration files..."
+../../bin/gen_config_files.py --step 0.02 $FEATS_DIR configs/tasks/ \
+    $TIMIT_PATH $NTIMIT_PATH $CTIMIT_PATH $FFMTIMIT_PATH $STCTIMIT_PATH $WTIMIT_PATH
