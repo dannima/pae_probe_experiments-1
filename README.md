@@ -5,6 +5,7 @@ This repository is the implementation of probing experiments on various recent p
 * [vq-wav2vec](https://arxiv.org/pdf/1910.05453.pdf)
 * [Mockingjay](https://arxiv.org/pdf/1910.12638.pdf)
 * [DeCoAR](https://arxiv.org/pdf/1912.01679.pdf)
+* [wav2vec2.0](https://arxiv.org/pdf/2006.11477.pdf)
 
 as well as traditional MFCC and Mel scale filterbank features.
 
