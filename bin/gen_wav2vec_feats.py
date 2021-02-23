@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Extract acoustic features using wav2vec or vq-wav2vec models.
+"""Extract acoustic features using wav2vec, vq-wav2vec or wav2vec 2.0 models.
 
-To extract features using a pretrained wav2vec of vq-wav2vec model:
+To extract features using a pretrained wav2vec model:
 
     python gen_wav2vec_feats.py --use_gpu w2v_model.pt feats_dir/ \
         fn1.wav fn2.wav fn3.wav ...
@@ -30,12 +30,19 @@ processing quantized features output by a vq-wav2ec model, run:
 where ``vqw2v_model.pt`` is the checkpoint from a pretrained vq-wav2vec model,
 ``roberta_model.pt`` is the corresponding pretrained RoBERTa model checkpoint,
 and ``dict.txt`` is the vocabulary used by that RoBERTa model.
+
+If you would like to extract wav2vec 2.0 features from a wav2vec 2.0 model,
+run:
+
+    python gen_wav2vec_feats.py --use_gpu --v2 w2v2_model.pt feats_dir/ \
+        fn1.wav fn2.wav fn3.wav ...
+where ``w2v2_model.pt`` is the checkpoint from a pretrained wav2vec 2.0 model.
 """
 import argparse
 import os
 from pathlib import Path
 import sys
-
+import fairseq
 from fairseq.data import Dictionary
 from fairseq.models.roberta import RobertaModel
 from fairseq.models.wav2vec import Wav2VecModel
@@ -45,6 +52,16 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from wurlitzer import pipes
+
+
+activation = {}
+
+
+def get_activation(name):
+    """Extract output of an intermediate layer"""
+    def hook(model, input, output):
+        activation[name] = output.detach()
+    return hook
 
 
 def get_device(x):
@@ -59,7 +76,7 @@ def get_device(x):
 
 
 def extract_feats_to_file(npy_path, audio_path, wav2vec_model,
-                          roberta_model=None):
+                          roberta_model=None, v2=False):
     """Extract features to file.
 
     Parameters
@@ -85,32 +102,51 @@ def extract_feats_to_file(npy_path, audio_path, wav2vec_model,
     x = x.to(dev)
 
     # Extract context layer features from wav2vec model.
-    with torch.no_grad():
-        z = wav2vec_model.feature_extractor(x)
-        c = wav2vec_model.feature_aggregator(z)
-        feats = c
-
-    # If a RoBERTa model is specified, perform quantization
-    # and pass through RoBERTa to get features.
-    # https://github.com/pytorch/fairseq/issues/1793
-    if roberta_model is not None:
-        _, idx = wav2vec_model.vector_quantizer.forward_idx(z)
-        idx = idx.squeeze(0).cpu().numpy()
-        tokens = [f'{g1}-{g2}' for g1, g2 in idx]
-        sent = ' '.join(tokens)
-        tokens = roberta_model.encoder.dictionary.encode_line(
-            sent, append_eos=False, add_if_not_exist=False)
-        tokens = tokens.long().unsqueeze(0)
-        tokens = tokens.to(dev)
+    if not v2:
         with torch.no_grad():
-            feats, _ = roberta_model.encoder.extract_features(tokens)
-        feats = feats.T  # For some reason Roberta feats are inverted.
+            z = wav2vec_model.feature_extractor(x)
+            c = wav2vec_model.feature_aggregator(z)
+            feats = c
 
-    # Save as uncompressed .npy file.
-    feats = feats.cpu().numpy()  # Shape: feat_dim x n_frames x 1
-    feats = np.squeeze(feats)
-    feats = feats.T  # Shape: n_frames x feat_dim
-    np.save(npy_path, feats)
+        # If a RoBERTa model is specified, perform quantization
+        # and pass through RoBERTa to get features.
+        # https://github.com/pytorch/fairseq/issues/1793
+        if roberta_model is not None:
+            _, idx = wav2vec_model.vector_quantizer.forward_idx(z)
+            idx = idx.squeeze(0).cpu().numpy()
+            tokens = [f'{g1}-{g2}' for g1, g2 in idx]
+            sent = ' '.join(tokens)
+            tokens = roberta_model.encoder.dictionary.encode_line(
+                sent, append_eos=False, add_if_not_exist=False)
+            tokens = tokens.long().unsqueeze(0)
+            tokens = tokens.to(dev)
+            with torch.no_grad():
+                feats, _ = roberta_model.encoder.extract_features(tokens)
+            feats = feats.T  # For some reason Roberta feats are inverted.
+
+        # Save as uncompressed .npy file.
+        feats = feats.cpu().numpy()  # Shape: feat_dim x n_frames x 1
+        feats = np.squeeze(feats)
+        feats = feats.T  # Shape: n_frames x feat_dim
+        np.save(npy_path, feats)
+
+    # If a wav2vec 2.0 model is specified
+    else:
+        with torch.no_grad():
+            handle = \
+                wav2vec_model.w2v_encoder.final_dropout.register_forward_hook(
+                    get_activation('final_dropout'))
+            _ = wav2vec_model(source=x, padding_mask=None)
+            feats = activation['final_dropout']
+            handle.remove()
+
+            # feats = wav2vec_model.extract_features(
+            #     source=x, padding_mask=None)['encoder_out']
+
+        # Save as uncompressed .npy file.
+        feats = feats.cpu().numpy()  # Shape: n_frames x 1 x feat_dim
+        feats = np.squeeze(feats)  # Shape: n_frames x feat_dim
+        np.save(npy_path, feats)
 
 
 def main():
@@ -123,18 +159,25 @@ def main():
         '--vocab', default=None, type=Path, metavar='STR',
         help='path to vocabulary file (default: %(default)s)')
     parser.add_argument(
+        '--v2', default=False, action='store_true',
+        help='use wav2vec 2.0 model')
+    parser.add_argument(
         '--use_gpu', default=False, action='store_true',
         help='use GPU')
     parser.add_argument(
-        'modelf', type=Path, help='wav2vec/vq-wav2vec checkpoint')
+        'modelf', type=Path, help='wav2vec/vq-wav2vec/wav2vec 2.0 checkpoint')
     parser.add_argument(
-        'feats_dir', type=Path, help='path to output directory for .npy files')
+        'feats_dir', type=Path,
+        help='path to output directory for .npy files')
     parser.add_argument(
         'afs', nargs='*', type=Path, help='audio files to be processed')
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
+
+    if args.roberta and args.v2:
+        parser.error('Can\'t load vq-wav2vec and wav2vec 2.0 model together!')
 
     os.makedirs(args.feats_dir, exist_ok=True)
 
@@ -159,15 +202,28 @@ def main():
         roberta_model.eval()
         roberta_model = roberta_model.to(device)
 
-    # Load wav2vec model..
-    wav2vec_cp = torch.load(args.modelf, map_location=torch.device('cpu'))
-    with pipes() as (stderr, stdout):
-        wav2vec_model = Wav2VecModel.build_model(
-            wav2vec_cp['args'], task=None)
+    # Load wav2vec 2.0 model..
+    using_wav2vec2 = args.v2 and args.roberta is None and \
+        args.vocab is not None
+    if using_wav2vec2:
+        modelf = str(args.modelf)
+        model, cfg, task = \
+            fairseq.checkpoint_utils.load_model_ensemble_and_task(
+                [modelf], arg_overrides={"data": args.vocab})
+        wav2vec_model = model[0]
+        wav2vec_model.eval()
+        wav2vec_model = wav2vec_model.to(device)
 
-    wav2vec_model.load_state_dict(wav2vec_cp['model'])
-    wav2vec_model.eval()
-    wav2vec_model = wav2vec_model.to(device)
+    # Load wav2vec model..
+    if not using_wav2vec2:
+        wav2vec_cp = torch.load(args.modelf, map_location=torch.device('cpu'))
+        with pipes() as (stderr, stdout):
+            wav2vec_model = Wav2VecModel.build_model(
+                wav2vec_cp['args'], task=None)
+
+        wav2vec_model.load_state_dict(wav2vec_cp['model'])
+        wav2vec_model.eval()
+        wav2vec_model = wav2vec_model.to(device)
 
     # Process.
     with tqdm(total=len(args.afs)) as pbar:
@@ -175,11 +231,14 @@ def main():
             npy_path = Path(args.feats_dir, fn.stem + '.npy')
             try:
                 extract_feats_to_file(
-                    npy_path, fn, wav2vec_model, roberta_model)
-            except RuntimeError as e:
+                    npy_path, fn, wav2vec_model, roberta_model,
+                    v2=using_wav2vec2)
+            except RuntimeError:
                 tqdm.write(
-                    f'ERROR: CUDA OOM error when processing "{fn}". Skipping.')
+                    f'ERROR: CUDA OOM error when processing "{fn}". \
+                      Skipping.')
                 torch.cuda.empty_cache()
+
             pbar.update(1)
 
 
