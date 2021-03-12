@@ -29,7 +29,7 @@ for corpus in ctimit ffmtimit ntimit stctimit timit wtimit; do
     echo "Extracting features using wav2vec 2.0 large model for ${corpus}..."
     feats_dir=$FEATS_DIR/${corpus}
     export CUDA_VISIBLE_DEVICES=`free-gpu`
-    ../../bin/gen_wav2vec2_feats.py \
+    ../../bin/gen_wav2vec_feats.py \
         --use_gpu --v2 --vocab $VOCAB_DIR $W2V2_MODELF \
         $feats_dir $wav_dir/*.wav
 done
