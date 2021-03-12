@@ -18,15 +18,6 @@ def main():
     parser.add_argument(
         'df', nargs='+',
         help='path to TIMIT variants')
-    # parser.add_argument(
-    #     '--ftype', nargs=None, default='mel_fbank', metavar='FEATURE',
-    #     help='type of features (default: %(default)s)')
-    # parser.add_argument(
-    #     '--task', nargs=None, default='sad', metavar='TASK',
-    #     help='probing tasks (default: %(default)s)')
-    # parser.add_argument(
-    #     '--clf', nargs=None, default='logistic', metavar='CLASSIFIER',
-    #     help='classifier (default: %(default)s)')
     parser.add_argument(
         '--context_size', nargs=None, default=0, type=int,
         help='number of frames in each side as context to features \
@@ -43,13 +34,8 @@ def main():
         parser.print_help()
         sys.exit(1)
     args = parser.parse_args()
-    # print (args.df)
-    # print (type(args.df))
-    # print (args.df[0])
-    # print (args.df[0]+'/train.ids')
 
     os.makedirs(args.config_dir, exist_ok=True)
-    # args.config_dir.mkdir(parents=True, exist_ok=True)
 
     # Determine parameters for configuration files.
     for probing_task in ['sad', 'vowel', 'sonorant', 'fricative', 'phone']:

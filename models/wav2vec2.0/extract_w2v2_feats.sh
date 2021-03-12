@@ -21,8 +21,6 @@ fi
 echo 'Update fairseq to its newest version'
 echo 'A temporary workaround for loading wav2vec 2.0..'
 pip install soundfile git+git://github.com/pytorch/fairseq.git@66e1803c60272602c719a5ba75acef1c530066ef
-# pip install soundfile git+git://github.com/pytorch/fairseq.git@master
-# Successfully uninstalled fairseq-1.0.0a0+3aeb8fe
 
 for corpus in ctimit ffmtimit ntimit stctimit timit wtimit; do
     data_dir="${corpus^^}_PATH"
@@ -31,7 +29,7 @@ for corpus in ctimit ffmtimit ntimit stctimit timit wtimit; do
     echo "Extracting features using wav2vec 2.0 large model for ${corpus}..."
     feats_dir=$FEATS_DIR/${corpus}
     export CUDA_VISIBLE_DEVICES=`free-gpu`
-    ../../bin/gen_wav2vec_feats.py \
+    ../../bin/gen_wav2vec2_feats.py \
         --use_gpu --v2 --vocab $VOCAB_DIR $W2V2_MODELF \
         $feats_dir $wav_dir/*.wav
 done
