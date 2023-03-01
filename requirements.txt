@@ -9,7 +9,7 @@ mxnet_cu101mkl==1.6.0.post0
 numpy==1.22.0
 tqdm==4.54.0
 torch==1.7.0+cu101
-mxnet==1.7.0.post1
+mxnet==1.9.1
 PyYAML==5.4
 scikit_learn==0.23.2
 utility==1.0
